@@ -1,0 +1,14 @@
+yolo:
+  model: "yolov8n.pt"
+  confidence_threshold: 0.5
+  nms_threshold: 0.4
+
+deepsort:
+  max_age: 30
+  n_init: 3
+  max_iou_distance: 0.7
+
+target_selection:
+  fov_angle: 60  # degrees
+  max_distance: 10.0  # meters
+  reacquisition_timeout: 3.0  # seconds
