@@ -1,0 +1,39 @@
+# Safety Parameters Configuration
+# CRITICAL: These parameters control robot safety systems
+# DO NOT modify without thorough testing and validation
+
+safety_monitor:
+  # Maximum allowed velocities (m/s, rad/s)
+  max_linear_velocity: 0.8  # m/s - maximum forward/backward speed
+  max_angular_velocity: 1.0  # rad/s - maximum turning speed
+
+  # Distance thresholds (meters)
+  min_obstacle_distance: 0.3  # meters - minimum clearance from obstacles
+  emergency_stop_distance: 0.5  # meters - trigger emergency stop if closer
+
+  # Timing constraints
+  emergency_stop_timeout: 0.1  # seconds - emergency stop must execute within this time
+
+watchdog:
+  # Timeout thresholds (seconds)
+  target_timeout: 2.0  # seconds - stop if no valid target for this long
+  pose_timeout: 0.5  # seconds - stop if no pose update for this long
+  command_timeout: 1.0  # seconds - stop if no motion command for this long
+
+  # Heartbeat monitoring
+  heartbeat_interval: 0.5  # seconds - components must send heartbeat at this rate
+
+health:
+  # Resource usage thresholds (percent)
+  cpu_warning_threshold: 80  # percent - warn if CPU usage exceeds this
+  memory_warning_threshold: 90  # percent - warn if memory usage exceeds this
+
+  # Performance thresholds
+  fps_warning_threshold: 20  # fps - warn if camera frame rate drops below this
+
+  # Battery thresholds (percent)
+  battery_warning_threshold: 20  # percent - warn at this battery level
+  battery_critical_threshold: 10  # percent - stop robot at this battery level
+
+  # Network thresholds
+  network_latency_warning_ms: 100  # milliseconds - warn if latency exceeds this
