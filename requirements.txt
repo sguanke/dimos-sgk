@@ -1,1 +1,27 @@
+# Core dependencies
+numpy>=1.24.0
 pyyaml>=6.0
+
+# Computer vision
+opencv-python>=4.8.0
+ultralytics>=8.0.0
+deep-sort-realtime>=1.3.0
+
+# Robot control (placeholder - actual SDK may differ)
+# unitree-go2-sdk>=2.0.0
+
+# ROS2 (optional, for future integration)
+# rclpy>=3.3.0
+
+# Dimos framework (placeholder - actual package may differ)
+# dimos-sdk>=1.0.0
+
+# System monitoring
+psutil>=5.9.0
+
+# Development dependencies
+pytest>=7.4.0
+pytest-cov>=4.1.0
+black>=23.0.0
+mypy>=1.5.0
+pylint>=2.17.0
