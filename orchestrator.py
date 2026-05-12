@@ -191,6 +191,57 @@ class AgentOrchestrator:
                 return False
         return True
 
+    def check_agent_condition(self, agent_config: Dict, context: Dict) -> bool:
+        """Check if agent's execution condition is met"""
+        condition = agent_config.get("condition")
+        if not condition:
+            return True
+
+        # Parse condition expression
+        # Example: "test_results.failed > 0"
+        try:
+            # Simple evaluation - can be enhanced with safer eval
+            # For now, check common patterns
+            if "test_results.failed > 0" in condition:
+                test_results_file = self.state_dir / "test_results.json"
+                if test_results_file.exists():
+                    with open(test_results_file) as f:
+                        data = json.load(f)
+                        return data.get("failed", 0) > 0
+                return False
+
+            if "problem_analysis.problems.length > 0" in condition:
+                analysis_file = self.state_dir / "problem_analysis.json"
+                if analysis_file.exists():
+                    with open(analysis_file) as f:
+                        data = json.load(f)
+                        return len(data.get("problems", [])) > 0
+                return False
+
+            # Default: condition not recognized, run agent
+            return True
+        except Exception as e:
+            self.log(f"  ⚠️  Error evaluating condition: {e}", "warning")
+            return True
+
+    def load_context(self) -> Dict:
+        """Load execution context from state files"""
+        context = {}
+
+        # Load test results if available
+        test_results_file = self.state_dir / "test_results.json"
+        if test_results_file.exists():
+            with open(test_results_file) as f:
+                context["test_results"] = json.load(f)
+
+        # Load problem analysis if available
+        analysis_file = self.state_dir / "problem_analysis.json"
+        if analysis_file.exists():
+            with open(analysis_file) as f:
+                context["problem_analysis"] = json.load(f)
+
+        return context
+
     def validate_agent_output(self, agent_name: str, expected_files: List[str]) -> bool:
         """Validate that agent created expected files"""
         missing_files = []
@@ -205,9 +256,17 @@ class AgentOrchestrator:
             return False
         return True
 
-    def run_agent(self, agent_config: Dict, retry_count: int = 0) -> bool:
+    def run_agent(self, agent_config: Dict, retry_count: int = 0, context: Optional[Dict] = None) -> bool:
         """Run a single agent"""
         agent_name = agent_config.get("name", "unnamed")
+
+        # Check if agent should run based on condition
+        if context is None:
+            context = self.load_context()
+
+        if not self.check_agent_condition(agent_config, context):
+            self.log(f"\n⏭️  Skipping agent {agent_name} (condition not met)")
+            return True  # Not an error, just skipped
 
         self.log(f"\n{'='*60}")
         self.log(f"🤖 Running agent: {agent_name}")
@@ -312,6 +371,11 @@ class AgentOrchestrator:
             self.log(f"❌ Phase {phase_name} dependencies not met", "error")
             return False
 
+        # Check if this phase has a loop configuration
+        loop_config = phase.get("loop", {})
+        if loop_config:
+            return self.run_phase_with_loop(phase, loop_config, retry_count)
+
         phase_start_time = time.time()
 
         # Check if this is a multi-agent phase
@@ -322,13 +386,15 @@ class AgentOrchestrator:
             self.log(f"\n📊 Phase contains {len(agents)} agents")
             self.log(f"Execution mode: {'Parallel' if parallel else 'Sequential'}")
 
+            context = self.load_context()
+
             if parallel:
                 self.log(f"\n⚡ Running {len(agents)} agents in parallel...")
                 # For now, run sequentially (true parallel would need multiprocessing)
                 results = []
                 for i, agent in enumerate(agents, 1):
                     self.log(f"\n[{i}/{len(agents)}] Starting agent: {agent['name']}")
-                    success = self.run_agent(agent, retry_count)
+                    success = self.run_agent(agent, retry_count, context)
                     results.append((agent["name"], success))
 
                 # Check if all succeeded
@@ -349,18 +415,84 @@ class AgentOrchestrator:
                 # Run agents sequentially
                 for i, agent in enumerate(agents, 1):
                     self.log(f"\n[{i}/{len(agents)}] Starting agent: {agent['name']}")
-                    if not self.run_agent(agent, retry_count):
+                    if not self.run_agent(agent, retry_count, context):
                         return False
+                    # Reload context after each agent
+                    context = self.load_context()
 
                 phase_elapsed = time.time() - phase_start_time
                 self.log(f"\n⏱️  Phase total time: {phase_elapsed:.2f} seconds")
                 return True
         else:
             # Single agent phase (use phase config as agent config)
-            success = self.run_agent(phase, retry_count)
+            context = self.load_context()
+            success = self.run_agent(phase, retry_count, context)
             phase_elapsed = time.time() - phase_start_time
             self.log(f"\n⏱️  Phase total time: {phase_elapsed:.2f} seconds")
             return success
+
+    def run_phase_with_loop(self, phase: Dict, loop_config: Dict, retry_count: int = 0) -> bool:
+        """Run a phase with loop configuration (for test-fix cycles)"""
+        phase_name = phase["name"]
+        max_iterations = loop_config.get("max_iterations", 1)
+        break_on_success = loop_config.get("break_on_success", False)
+
+        self.log(f"\n🔄 Phase has loop configuration:")
+        self.log(f"  - Max iterations: {max_iterations}")
+        self.log(f"  - Break on success: {break_on_success}")
+
+        for iteration in range(max_iterations):
+            self.log(f"\n{'─'*60}")
+            self.log(f"🔄 Loop iteration {iteration + 1}/{max_iterations}")
+            self.log(f"{'─'*60}")
+
+            phase_start_time = time.time()
+
+            # Run all agents in the phase
+            agents = phase.get("agents", [])
+            context = self.load_context()
+
+            all_success = True
+            for i, agent in enumerate(agents, 1):
+                self.log(f"\n[{i}/{len(agents)}] Starting agent: {agent['name']}")
+                success = self.run_agent(agent, retry_count, context)
+                if not success:
+                    all_success = False
+                    break
+                # Reload context after each agent
+                context = self.load_context()
+
+            phase_elapsed = time.time() - phase_start_time
+            self.log(f"\n⏱️  Iteration time: {phase_elapsed:.2f} seconds")
+
+            if not all_success:
+                self.log(f"❌ Iteration {iteration + 1} failed", "error")
+                return False
+
+            # Check success condition
+            if break_on_success and self.check_loop_success_condition(context):
+                self.log(f"\n✅ Success condition met after {iteration + 1} iteration(s)")
+                self.log(f"Breaking loop early")
+                return True
+
+        self.log(f"\n⏱️  Total loop time: {phase_elapsed:.2f} seconds")
+        return True
+
+    def check_loop_success_condition(self, context: Dict) -> bool:
+        """Check if loop should break (e.g., all tests passed)"""
+        # Check if all tests passed
+        test_results = context.get("test_results", {})
+        if test_results:
+            failed = test_results.get("failed", 0)
+            if failed == 0:
+                self.log(f"  ✅ All tests passed (0 failures)")
+                return True
+            else:
+                self.log(f"  ⚠️  Still have {failed} failing test(s)")
+                return False
+
+        # If no test results, assume success
+        return False
 
     def execute(self) -> bool:
         """Execute the entire workflow"""

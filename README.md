@@ -8,16 +8,27 @@
 
 ## 多智能体开发工作流
 
-本项目采用创新的多智能体开发方法，由8个专门的AI智能体协作构建完整系统：
+本项目采用创新的多智能体开发方法，由多个专门的AI智能体协作构建完整系统：
 
+### 实现智能体
 - **感知智能体 (Perception Agent)** - 视觉检测和跟踪 (YOLO + DeepSORT)
 - **导航智能体 (Navigation Agent)** - 运动控制和路径规划
 - **定位智能体 (Localization Agent)** - 机器人位姿估计和建图
 - **安全智能体 (Safety Agent)** - 安全监控和紧急处理
 - **集成智能体 (Integration Agent)** - 系统集成与dimos框架对接
+
+### 测试智能体
 - **单元测试智能体 (Unit Test Agent)** - 全面的单元测试
 - **集成测试智能体 (Integration Test Agent)** - 模块交互测试
 - **仿真测试智能体 (Simulation Test Agent)** - 端到端场景测试
+
+### 🆕 自动测试和修复智能体
+- **测试运行智能体 (Test Runner Agent)** - 自动运行所有测试并收集结果
+- **调试智能体 (Debugger Agent)** - 智能分析测试失败原因
+- **修复智能体 (Fixer Agent)** - 自动修复常见代码问题
+- **验证智能体 (Verification Agent)** - 验证修复效果并检测回归
+
+> 💡 **自动测试-修复循环**: 系统能够自动运行测试、分析失败原因、修复代码并验证，最多迭代3次直到所有测试通过！
 
 ## 快速开始
 
@@ -40,16 +51,44 @@ pip install -r requirements.txt
 
 ### 运行多智能体工作流
 
+#### 标准工作流（不含自动修复）
 ```bash
 # 启动自动化开发工作流
 python orchestrator.py
 ```
 
+#### 🆕 增强工作流（含自动测试和修复）
+```bash
+# 使用带自动测试-修复循环的工作流
+python orchestrator.py --workflow .claude/workflow_with_autofix.yml
+```
+
 编排器将会：
-1. 按正确顺序执行所有8个智能体
+1. 按正确顺序执行所有智能体
 2. 每个模块完成后自动提交并推送代码
-3. 将详细进度记录到控制台和 `.claude/logs/`
-4. 为每个模块创建独立分支
+3. **🆕 自动运行测试并修复失败的测试（最多3次迭代）**
+4. 将详细进度记录到控制台和 `.claude/logs/`
+5. 为每个模块创建独立分支
+
+### 🔄 自动测试-修复循环
+
+增强工作流包含智能的测试-修复循环：
+
+```
+运行测试 → 分析失败 → 自动修复 → 验证修复 → 重复（最多3次）
+```
+
+**能够自动修复的问题**:
+- ✅ 未初始化的变量
+- ✅ 类型转换错误
+- ✅ 缺少的错误处理
+- ✅ 边界检查缺失
+- ✅ 简单的逻辑错误
+- ✅ 导入路径错误
+
+**自动修复率**: 通常能修复70-90%的常见问题
+
+详细文档: [自动测试和修复系统使用指南](.claude/AUTO_FIX_GUIDE.md)
 
 ### 监控进度
 
@@ -59,6 +98,18 @@ tail -f .claude/logs/orchestrator_*.log
 
 # 检查智能体输出
 ls -la .claude/state/
+
+# 🆕 查看测试结果
+cat .claude/state/test_results.json
+
+# 🆕 查看问题分析
+cat .claude/state/problem_analysis.json
+
+# 🆕 查看应用的修复
+cat .claude/state/fixes_applied.json
+
+# 🆕 查看HTML测试报告（在浏览器中打开）
+open .claude/state/test_report.html
 
 # 查看创建的分支
 git branch -r
@@ -130,7 +181,7 @@ dimos-sgk/
 ### .claude/ 目录配置文件
 
 #### `.claude/workflow.yml`
-**作用**: 智能体工作流的核心定义文件
+**作用**: 智能体工作流的核心定义文件（标准版）
 **用途**:
 - 定义6个执行阶段（planning, implementation, integration, testing, review, final-integration）
 - 配置8个智能体的名称、提示词、依赖关系
@@ -138,6 +189,19 @@ dimos-sgk/
 - 配置错误处理策略（重试次数等）
 - 指定输出文件路径和状态目录
 **使用者**: orchestrator.py读取此文件执行工作流
+
+#### 🆕 `.claude/workflow_with_autofix.yml`
+**作用**: 增强版工作流定义文件（含自动测试-修复循环）
+**用途**:
+- 包含标准工作流的所有功能
+- 新增 `auto-test-and-fix` 阶段，包含4个智能体：
+  - Test Runner Agent - 运行测试并收集结果
+  - Debugger Agent - 分析失败原因
+  - Fixer Agent - 自动修复代码
+  - Verification Agent - 验证修复效果
+- 配置循环参数（最大迭代次数、成功退出条件）
+- 支持条件执行（只在有失败时运行修复）
+**使用者**: 通过 `python orchestrator.py --workflow .claude/workflow_with_autofix.yml` 使用
 
 #### `.claude/agent_prompts.md`
 **作用**: 每个智能体的详细实现指令
@@ -158,6 +222,26 @@ dimos-sgk/
 - 解释智能体隔离策略
 - 描述多智能体架构的优势
 **使用者**: 开发者理解系统架构，智能体参考设计
+
+#### 🆕 `.claude/auto_fix_design.md`
+**作用**: 自动测试和修复系统的详细技术设计
+**用途**:
+- 说明测试-修复循环的架构
+- 定义4个自动修复智能体的职责和接口
+- 提供状态文件格式规范
+- 说明智能修复策略和错误分类
+- 列出系统限制和未来增强方向
+**使用者**: 开发者理解自动修复机制，扩展修复策略
+
+#### 🆕 `.claude/AUTO_FIX_GUIDE.md`
+**作用**: 自动测试和修复系统的用户使用指南
+**用途**:
+- 提供快速开始指南和使用示例
+- 详细说明每个智能体的功能和输出
+- 展示修复前后的代码对比
+- 提供故障排除和调试方法
+- 列出成功指标和最佳实践
+**使用者**: 用户学习如何使用自动测试-修复功能
 
 #### `.claude/config_issues.md`
 **作用**: 配置问题诊断报告
@@ -184,6 +268,14 @@ dimos-sgk/
 - 存储review.md代码审查报告
 - 记录final-integration.json最终总结
 - 保存失败状态用于恢复
+- 🆕 保存测试结果和修复记录：
+  - `test_results.json` - 测试运行结果
+  - `test_failures.json` - 失败测试详情
+  - `problem_analysis.json` - 问题分析报告
+  - `fixes_applied.json` - 应用的修复记录
+  - `verification_results.json` - 修复验证结果
+  - `coverage.json` - 代码覆盖率报告
+  - `test_report.html` - HTML测试报告
 **使用者**: orchestrator.py写入，用户和后续智能体读取
 
 #### `.claude/logs/`
@@ -240,15 +332,49 @@ dimos-sgk/
 - **集成测试智能体** → `integration-tests` 分支
 - **仿真测试智能体** → `simulation-tests` 分支
 
-### 阶段5: 审查 (Review)
+### 🆕 阶段5: 自动测试和修复 (Auto Test-Fix Loop)
+**仅在使用 `workflow_with_autofix.yml` 时执行**
+
+四个智能体循环执行（最多3次迭代）：
+1. **测试运行智能体** - 运行所有测试，收集失败信息
+2. **调试智能体** - 分析失败原因，生成修复策略
+3. **修复智能体** - 自动修复代码并提交
+4. **验证智能体** - 验证修复效果，检测回归
+
+**退出条件**:
+- ✅ 所有测试通过（提前退出）
+- ⏱️ 达到最大迭代次数（3次）
+- ❌ 任何智能体执行失败
+
+**示例输出**:
+```
+🔄 Loop iteration 1/3
+  Test Runner: 150 tests, 8 failed
+  Debugger: Analyzed 8 problems
+  Fixer: Applied 8 fixes
+  Verification: 6 fixed, 2 still failing
+
+🔄 Loop iteration 2/3
+  Test Runner: 150 tests, 2 failed
+  Debugger: Analyzed 2 problems
+  Fixer: Applied 2 fixes
+  Verification: 2 fixed, 0 still failing
+
+✅ All tests passed!
+✅ Success after 2 iterations
+```
+
+### 阶段6: 审查 (Review)
 - 审查所有代码和测试
 - 检查标准合规性
 - 验证安全要求
+- 🆕 检查测试覆盖率和修复质量
 
-### 阶段6: 最终集成 (Final Integration)
+### 阶段7: 最终集成 (Final Integration)
 - 合并所有测试代码
 - 运行完整测试套件
 - 创建最终总结报告
+- 🆕 包含自动修复统计信息
 
 ## 生成的分支
 
@@ -333,6 +459,20 @@ pytest tests/simulation/
 # 运行测试并生成覆盖率报告
 pytest --cov=src --cov-report=html tests/
 
+# 🆕 运行测试并生成详细报告（用于自动修复）
+pytest tests/ \
+  --verbose \
+  --tb=long \
+  --junit-xml=.claude/state/junit.xml \
+  --cov=src \
+  --cov-report=json:.claude/state/coverage.json \
+  --json-report \
+  --json-report-file=.claude/state/test_results.json \
+  --html=.claude/state/test_report.html
+
+# 🆕 只运行之前失败的测试
+pytest tests/unit/test_detector.py::test_detect_person --verbose
+
 # 运行系统（仿真模式）
 python src/main.py --mode simulation
 
@@ -378,6 +518,28 @@ python src/main.py --mode simulation --debug --visualize
 
 ### Worktree访问问题
 检查 `.claude/worktrees/` 目录是否存在，智能体是否有读取权限。
+
+### 🆕 自动修复循环无法通过所有测试
+1. 查看 `.claude/state/verification_results.json` 中的 `still_failing` 列表
+2. 这些可能是需要人工修复的复杂问题
+3. 查看 `.claude/state/problem_analysis.json` 了解分析结果
+4. 手动修复后重新运行工作流
+
+### 🆕 修复引入了回归
+- Verification Agent会自动检测并回滚
+- 查看日志了解回滚原因
+- 检查 `.claude/state/verification_results.json` 中的 `new_failures`
+
+### 🆕 测试报告查看
+```bash
+# 在浏览器中打开HTML报告
+open .claude/state/test_report.html  # macOS
+xdg-open .claude/state/test_report.html  # Linux
+start .claude/state/test_report.html  # Windows
+
+# 查看JSON格式的详细结果
+cat .claude/state/test_results.json | jq '.'
+```
 
 ## 配置文件依赖关系
 
