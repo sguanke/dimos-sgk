@@ -1,0 +1,262 @@
+project:
+  name: "go2-person-following"
+  description: "Go2 robot dog person following system using dimos framework"
+
+  phases:
+    - name: "planning"
+      agent: "Plan"
+      prompt: |
+        Create an implementation plan for a Go2 robot person following system.
+        Read CLAUDE.md for architecture decisions and constraints.
+        Output detailed plan to .claude/plan.md
+      output: ".claude/plan.md"
+
+    - name: "implementation-parallel"
+      parallel: true
+      dependencies: ["planning"]
+      agents:
+        - name: "perception-agent"
+          agent: "general-purpose"
+          isolation: "worktree"
+          prompt: |
+            Read detailed instructions in .claude/agent_prompts.md under "Perception Agent" section.
+            Implement the perception module according to those instructions and CLAUDE.md.
+            Focus on vision-related components:
+            - src/vision/person_detector.py (YOLO-based detection)
+            - src/vision/person_tracker.py (DeepSORT tracking)
+            - src/vision/target_selector.py (target selection logic)
+            - config/vision_params.yaml
+
+            After implementation:
+            1. Create a git commit with message: "Implement perception module (vision detection and tracking)"
+            2. Push to current branch
+          dependencies: ["planning"]
+          output: ".claude/state/perception-agent.json"
+          auto_commit: true
+          commit_message: "Implement perception module (vision detection and tracking)"
+
+        - name: "navigation-agent"
+          agent: "general-purpose"
+          isolation: "worktree"
+          prompt: |
+            Read detailed instructions in .claude/agent_prompts.md under "Navigation Agent" section.
+            Implement the navigation and control module according to those instructions and CLAUDE.md.
+            Focus on motion control:
+            - src/control/motion_controller.py (PID control)
+            - src/control/distance_keeper.py (maintain following distance)
+            - src/control/path_planner.py (obstacle avoidance path planning)
+            - config/robot_params.yaml
+
+            After implementation:
+            1. Create a git commit with message: "Implement navigation module (motion control and path planning)"
+            2. Push to current branch
+          dependencies: ["planning"]
+          output: ".claude/state/navigation-agent.json"
+          auto_commit: true
+          commit_message: "Implement navigation module (motion control and path planning)"
+
+        - name: "localization-agent"
+          agent: "general-purpose"
+          isolation: "worktree"
+          prompt: |
+            Read detailed instructions in .claude/agent_prompts.md under "Localization Agent" section.
+            Implement the localization and mapping module according to those instructions and CLAUDE.md.
+            Focus on localization:
+            - src/localization/odometry.py (wheel odometry)
+            - src/localization/imu_fusion.py (IMU data fusion)
+            - src/localization/pose_estimator.py (robot pose estimation)
+            - src/mapping/local_map.py (local obstacle map)
+
+            After implementation:
+            1. Create a git commit with message: "Implement localization module (odometry, IMU fusion, mapping)"
+            2. Push to current branch
+          dependencies: ["planning"]
+          output: ".claude/state/localization-agent.json"
+          auto_commit: true
+          commit_message: "Implement localization module (odometry, IMU fusion, mapping)"
+
+        - name: "safety-agent"
+          agent: "general-purpose"
+          isolation: "worktree"
+          prompt: |
+            Read detailed instructions in .claude/agent_prompts.md under "Safety Agent" section.
+            Implement the safety monitoring system according to those instructions and CLAUDE.md.
+            Focus on safety (CRITICAL):
+            - src/safety/safety_monitor.py (emergency stop, collision detection)
+            - src/safety/watchdog.py (timeout monitoring)
+            - src/safety/health_checker.py (system health monitoring)
+            - config/safety_params.yaml
+            This is CRITICAL - follow all safety requirements strictly.
+
+            After implementation:
+            1. Create a git commit with message: "Implement safety module (monitoring, watchdog, health checks)"
+            2. Push to current branch
+          dependencies: ["planning"]
+          output: ".claude/state/safety-agent.json"
+          auto_commit: true
+          commit_message: "Implement safety module (monitoring, watchdog, health checks)"
+
+    - name: "implementation-integration"
+      parallel: false
+      dependencies: ["implementation-parallel"]
+      agents:
+        - name: "integration-agent"
+          agent: "general-purpose"
+          prompt: |
+            Read detailed instructions in .claude/agent_prompts.md under "Integration Agent" section.
+
+            Access implementation code from these worktree directories:
+            - .claude/worktrees/perception-agent/
+            - .claude/worktrees/navigation-agent/
+            - .claude/worktrees/localization-agent/
+            - .claude/worktrees/safety-agent/
+
+            Integrate all modules and create:
+            - src/dimos_integration/agent_node.py (wrap components as dimos agents)
+            - src/dimos_integration/message_handler.py (inter-agent communication)
+            - src/main.py (entry point that coordinates all modules)
+            - requirements.txt (all dependencies)
+            - README.md (setup and usage)
+
+            Ensure all modules work together correctly.
+
+            After integration:
+            1. Create a git commit with message: "Integrate all modules with dimos framework"
+            2. Push to current branch
+          dependencies: ["implementation-parallel"]
+          output: ".claude/state/integration-agent.json"
+          auto_commit: true
+          commit_message: "Integrate all modules with dimos framework"
+
+    - name: "testing"
+      parallel: true
+      dependencies: ["implementation-integration"]
+      agents:
+        - name: "unit-test-agent"
+          agent: "general-purpose"
+          prompt: |
+            Read detailed instructions in .claude/agent_prompts.md under "Unit Test Agent" section.
+
+            Access implementation code from these worktree directories:
+            - .claude/worktrees/perception-agent/
+            - .claude/worktrees/navigation-agent/
+            - .claude/worktrees/localization-agent/
+            - .claude/worktrees/safety-agent/
+
+            Write unit tests for all modules in tests/unit/.
+            Create test mocks in tests/mocks/.
+            Create pytest.ini configuration.
+            Target >80% coverage (100% for safety modules).
+
+            After writing tests:
+            1. Create a git commit with message: "Add comprehensive unit tests for all modules"
+            2. Push to current branch
+          dependencies: ["implementation-integration"]
+          output: ".claude/state/unit-test-agent.json"
+          auto_commit: true
+          commit_message: "Add comprehensive unit tests for all modules"
+
+        - name: "integration-test-agent"
+          agent: "general-purpose"
+          prompt: |
+            Read detailed instructions in .claude/agent_prompts.md under "Integration Test Agent" section.
+
+            Access implementation code from worktree directories.
+
+            Write integration tests in tests/integration/ testing:
+            - Vision → Control data flow
+            - Safety monitor integration
+            - Dimos message bus communication
+            - Module interactions
+
+            Use real dimos framework, mock hardware.
+
+            After writing tests:
+            1. Create a git commit with message: "Add integration tests for module interactions"
+            2. Push to current branch
+          dependencies: ["implementation-integration"]
+          output: ".claude/state/integration-test-agent.json"
+          auto_commit: true
+          commit_message: "Add integration tests for module interactions"
+
+        - name: "simulation-test-agent"
+          agent: "general-purpose"
+          prompt: |
+            Read detailed instructions in .claude/agent_prompts.md under "Simulation Test Agent" section.
+
+            Access implementation code from worktree directories.
+
+            Write simulation tests in tests/simulation/ with:
+            - End-to-end scenario tests
+            - Recorded video test data
+            - Go2 simulator integration
+            - Various scenarios (person stops, turns, occlusion)
+            - Test fixtures and mock data
+
+            After writing tests:
+            1. Create a git commit with message: "Add simulation tests for end-to-end scenarios"
+            2. Push to current branch
+          dependencies: ["implementation-integration"]
+          output: ".claude/state/simulation-test-agent.json"
+          auto_commit: true
+          commit_message: "Add simulation tests for end-to-end scenarios"
+
+    - name: "review"
+      agent: "general-purpose"
+      prompt: |
+        Read detailed instructions in .claude/agent_prompts.md under "Review Agent" section.
+
+        Review all implementations and tests by reading from:
+        - Main branch (merged integration-agent code)
+        - tests/unit/ (unit tests)
+        - tests/integration/ (integration tests)
+        - tests/simulation/ (simulation tests)
+
+        Check against CLAUDE.md requirements:
+        - Architecture compliance
+        - Code quality and safety
+        - Test coverage
+        - Module integration correctness
+
+        Output comprehensive review report to .claude/state/review.md
+
+        IMPORTANT: If review finds critical issues, set exit code to indicate failure.
+      dependencies: ["testing"]
+      output: ".claude/state/review.md"
+
+    - name: "final-integration"
+      agent: "general-purpose"
+      prompt: |
+        Read the review report from .claude/state/review.md
+
+        If review PASSED:
+        1. Verify all code is already on main branch (integration-agent merged it)
+        2. Merge test code to main branch:
+           - tests/unit/
+           - tests/integration/
+           - tests/simulation/
+           - tests/mocks/
+           - pytest.ini
+        3. Run full test suite: pytest tests/
+        4. Create summary report with:
+           - All modules implemented
+           - Test results
+           - Coverage report
+           - Integration status
+        5. Save report to .claude/state/final-integration.json
+
+        If review FAILED:
+        1. Report the failure
+        2. List blocking issues from review
+        3. Exit with error
+
+        Follow CLAUDE.md conflict resolution rules if needed.
+      dependencies: ["review"]
+      output: ".claude/state/final-integration.json"
+
+  error_handling:
+    max_retries: 2
+    on_failure: "save_state_and_exit"
+
+  state_dir: ".claude/state"
+  worktree_dir: ".claude/worktrees"
