@@ -176,11 +176,11 @@ class AgentOrchestrator:
             self.log(f"  ❌ Unexpected error: {e}", "error")
             return False
 
-    def build_claude_cmd(self, prompt: str, output_file: Optional[str] = None) -> List[str]:
-        """Build Claude Code command"""
+    def build_claude_cmd(self, prompt: str, output_file: Optional[str] = None) -> tuple:
+        """Build Claude Code command - returns (command_list, prompt_input)"""
+        # Return command and prompt separately so we can pipe via stdin
         cmd = ["claude"]
-        cmd.extend(["--prompt", prompt])
-        return cmd
+        return (cmd, prompt)
 
     def check_dependencies(self, phase: Dict) -> bool:
         """Check if all dependencies for a phase are completed"""
@@ -287,7 +287,7 @@ class AgentOrchestrator:
         self.log(f"  - Prompt length: {len(prompt)} chars")
 
         # Build command
-        cmd = self.build_claude_cmd(prompt, output_file)
+        cmd, prompt_input = self.build_claude_cmd(prompt, output_file)
 
         self.log(f"\n▶️  Executing agent...")
         start_time = time.time()
@@ -295,6 +295,7 @@ class AgentOrchestrator:
         try:
             result = subprocess.run(
                 cmd,
+                input=prompt_input,
                 capture_output=True,
                 text=True,
                 timeout=3600  # 1 hour timeout
