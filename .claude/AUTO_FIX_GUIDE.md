@@ -292,7 +292,7 @@ echo "Regression detected, reverted changes"
 ```yaml
 - name: "auto-test-and-fix"
   loop:
-    max_iterations: 3        # 最大迭代次数
+    max_iterations: 6        # 最大迭代次数
     break_on_success: true   # 所有测试通过时提前退出
 ```
 
@@ -301,13 +301,13 @@ echo "Regression detected, reverted changes"
 循环会在以下情况退出：
 
 1. ✅ **成功退出**: 所有测试通过（`test_results.failed == 0`）
-2. ⏱️ **达到最大迭代次数**: 完成3次迭代后仍有失败
+2. ⏱️ **达到最大迭代次数**: 完成6次迭代后仍有失败
 3. ❌ **Agent执行失败**: 任何agent执行失败
 
 ### 迭代日志示例
 
 ```
-🔄 Loop iteration 1/3
+🔄 Loop iteration 1/6
 ────────────────────────────────────────
 🤖 Running agent: test-runner-agent
   Total: 150, Passed: 142, Failed: 8
@@ -319,7 +319,7 @@ echo "Regression detected, reverted changes"
   Fixed: 6, Still failing: 2
   ⚠️  Still have 2 failing test(s)
 
-🔄 Loop iteration 2/3
+🔄 Loop iteration 2/6
 ────────────────────────────────────────
 🤖 Running agent: test-runner-agent
   Total: 150, Passed: 148, Failed: 2
@@ -489,14 +489,14 @@ A: 修改 `workflow_with_autofix.yml` 中的 `max_iterations` 参数。
 ### 成功案例
 
 ```
-🔄 Loop iteration 1/3
+🔄 Loop iteration 1/6
 ────────────────────────────────────────
 🤖 Test Runner: 150 tests, 8 failed
 🤖 Debugger: Analyzed 8 problems
 🤖 Fixer: Applied 8 fixes
 🤖 Verification: 6 fixed, 2 still failing
 
-🔄 Loop iteration 2/3
+🔄 Loop iteration 2/6
 ────────────────────────────────────────
 🤖 Test Runner: 150 tests, 2 failed
 🤖 Debugger: Analyzed 2 problems
@@ -515,28 +515,37 @@ A: 修改 `workflow_with_autofix.yml` 中的 `max_iterations` 参数。
 ### 部分成功案例
 
 ```
-🔄 Loop iteration 1/3
+🔄 Loop iteration 1/6
 ────────────────────────────────────────
 🤖 Test Runner: 150 tests, 10 failed
 🤖 Debugger: Analyzed 10 problems
 🤖 Fixer: Applied 10 fixes
 🤖 Verification: 7 fixed, 3 still failing
 
-🔄 Loop iteration 2/3
+🔄 Loop iteration 2/6
 ────────────────────────────────────────
 🤖 Test Runner: 150 tests, 3 failed
 🤖 Debugger: Analyzed 3 problems
 🤖 Fixer: Applied 3 fixes
 🤖 Verification: 1 fixed, 2 still failing
 
-🔄 Loop iteration 3/3
+🔄 Loop iteration 3/6
 ────────────────────────────────────────
 🤖 Test Runner: 150 tests, 2 failed
 🤖 Debugger: Analyzed 2 problems
 🤖 Fixer: Applied 2 fixes
 🤖 Verification: 0 fixed, 2 still failing
 
-⚠️  Reached max iterations (3)
+... (继续迭代)
+
+🔄 Loop iteration 6/6
+────────────────────────────────────────
+🤖 Test Runner: 150 tests, 2 failed
+🤖 Debugger: Analyzed 2 problems
+🤖 Fixer: Applied 2 fixes
+🤖 Verification: 0 fixed, 2 still failing
+
+⚠️  Reached max iterations (6)
 ❌ 2 tests still failing
 📊 Auto-fix statistics:
   - Total problems: 15

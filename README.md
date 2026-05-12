@@ -75,7 +75,7 @@ python orchestrator.py --workflow .claude/workflow_with_autofix.yml
 增强工作流包含智能的测试-修复循环：
 
 ```
-运行测试 → 分析失败 → 自动修复 → 验证修复 → 重复（最多3次）
+运行测试 → 分析失败 → 自动修复 → 验证修复 → 重复（最多6次）
 ```
 
 **能够自动修复的问题**:
@@ -335,7 +335,7 @@ dimos-sgk/
 ### 🆕 阶段5: 自动测试和修复 (Auto Test-Fix Loop)
 **仅在使用 `workflow_with_autofix.yml` 时执行**
 
-四个智能体循环执行（最多3次迭代）：
+四个智能体循环执行（最多6次迭代）：
 1. **测试运行智能体** - 运行所有测试，收集失败信息
 2. **调试智能体** - 分析失败原因，生成修复策略
 3. **修复智能体** - 自动修复代码并提交
@@ -343,18 +343,18 @@ dimos-sgk/
 
 **退出条件**:
 - ✅ 所有测试通过（提前退出）
-- ⏱️ 达到最大迭代次数（3次）
+- ⏱️ 达到最大迭代次数（6次）
 - ❌ 任何智能体执行失败
 
 **示例输出**:
 ```
-🔄 Loop iteration 1/3
+🔄 Loop iteration 1/6
   Test Runner: 150 tests, 8 failed
   Debugger: Analyzed 8 problems
   Fixer: Applied 8 fixes
   Verification: 6 fixed, 2 still failing
 
-🔄 Loop iteration 2/3
+🔄 Loop iteration 2/6
   Test Runner: 150 tests, 2 failed
   Debugger: Analyzed 2 problems
   Fixer: Applied 2 fixes

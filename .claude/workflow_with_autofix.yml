@@ -207,7 +207,7 @@ project:
     - name: "auto-test-and-fix"
       dependencies: ["testing"]
       loop:
-        max_iterations: 3
+        max_iterations: 6
         break_on_success: true
       agents:
         - name: "test-runner-agent"

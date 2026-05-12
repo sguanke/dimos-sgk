@@ -281,7 +281,7 @@ if len(results["new_failures"]) > 0:
 
 ```python
 class TestFixLoop:
-    def __init__(self, max_iterations=3):
+    def __init__(self, max_iterations=6):
         self.max_iterations = max_iterations
         self.iteration = 0
         
