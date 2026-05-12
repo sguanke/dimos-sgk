@@ -1,9 +1,0 @@
-{
-  "phase": "failed",
-  "timestamp": 1778578055.0435882,
-  "data": {
-    "phase": "planning",
-    "reason": "max_retries_exceeded",
-    "completed_phases": []
-  }
-}
