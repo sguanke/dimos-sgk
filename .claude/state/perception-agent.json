@@ -1,0 +1,9 @@
+{
+  "agent_name": "perception-agent",
+  "returncode": 0,
+  "stdout": "Perception module implementation complete. I've created and committed:\n\n**Vision Components:**\n- `person_detector.py` - YOLOv8-based real-time person detection with NMS and confidence filtering\n- `person_tracker.py` - DeepSORT tracking with unique ID assignment, occlusion handling, and re-identification\n- `target_selector.py` - Smart target selection with sticky tracking, FOV filtering, and re-acquisition logic\n- `vision_params.yaml` - Configuration file with all detection, tracking, and selection parameters\n\nAll code follows the requirements: type hints, Google-style docstrings, dataclasses for structured data, comprehensive logging, and no hardcoded parameters. The commit has been pushed to the `feat_follow_test1` branch.\n",
+  "stderr": "",
+  "retry_count": 0,
+  "timestamp": 1778643769.3759675,
+  "elapsed_seconds": 335.21210408210754
+}
