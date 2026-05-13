@@ -1,0 +1,30 @@
+# Go2 Robot Parameters Configuration
+
+go2:
+  max_linear_velocity: 0.8  # m/s
+  max_angular_velocity: 1.0  # rad/s
+  max_acceleration: 0.5  # m/s²
+  control_frequency: 50  # Hz
+
+pid:
+  linear:
+    kp: 0.5
+    ki: 0.01
+    kd: 0.1
+  angular:
+    kp: 1.0
+    ki: 0.02
+    kd: 0.15
+
+following:
+  target_distance: 2.0  # meters
+  distance_tolerance: 0.3  # meters
+  emergency_distance: 0.5  # meters
+
+path_planning:
+  replanning_frequency: 10  # Hz
+  min_obstacle_clearance: 0.3  # meters
+  local_map_size: 10.0  # meters (10m x 10m)
+  dwa_time_horizon: 2.0  # seconds
+  dwa_velocity_samples: 10
+  dwa_angular_samples: 20
