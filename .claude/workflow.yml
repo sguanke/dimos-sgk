@@ -268,147 +268,197 @@ project:
           agent: "general-purpose"
           condition: "test_results.failed > 0"
           prompt: |
-            Analyze test failures and identify root causes.
+            Analyze test failures and classify by module.
 
             Read .claude/state/test_failures.json
 
             For each failure:
             1. Read the test code to understand what is being tested
             2. Read the source code file mentioned in the failure
-            3. Analyze the error type:
-               - AssertionError: Logic error, wrong output
-               - AttributeError: Missing attribute or method
-               - TypeError: Type mismatch
-               - ImportError: Missing dependency or wrong import
-               - IndexError: Array bounds issue
-               - KeyError: Missing dictionary key
+            3. Analyze the error type and identify root cause
+            4. Determine which module owns this code:
+               - perception: src/vision/*, src/tracking/*
+               - navigation: src/control/*, src/planning/*
+               - localization: src/localization/*, src/mapping/*
+               - safety: src/safety/*
+               - integration: src/dimos_integration/*, src/main.py
 
-            4. Identify the root cause:
-               - Uninitialized variable
-               - Wrong algorithm logic
-               - Missing error handling
-               - Type conversion issue
-               - API mismatch
+            5. Classify failures by module and save to separate files:
+               - .claude/state/perception_failures.json
+               - .claude/state/navigation_failures.json
+               - .claude/state/localization_failures.json
+               - .claude/state/safety_failures.json
+               - .claude/state/integration_failures.json
 
-            5. Generate fix strategy:
-               - add_initialization_check
-               - fix_logic_error
-               - add_error_handling
-               - fix_type_conversion
-               - fix_import
-
-            6. Save analysis to .claude/state/problem_analysis.json:
-               {
-                 "problems": [
-                   {
-                     "id": "problem_1",
-                     "failure_id": "failure_1",
-                     "test_file": "...",
-                     "source_file": "...",
-                     "source_function": "...",
-                     "root_cause": "...",
-                     "error_category": "...",
-                     "fix_strategy": "...",
-                     "affected_lines": [45, 46],
-                     "suggested_fix": "Add: if self.model is None: self._load_model()",
-                     "confidence": 0.95
-                   }
-                 ]
-               }
-          dependencies: ["test-runner-agent"]
-          output: ".claude/state/problem_analysis.json"
-
-        - name: "fixer-agent"
-          agent: "general-purpose"
-          condition: "problem_analysis.problems.length > 0"
-          prompt: |
-            Fix code based on problem analysis.
-
-            Read .claude/state/problem_analysis.json
-
-            For each problem (sorted by confidence, highest first):
-            1. Read the source file
-            2. Locate the affected lines
-            3. Apply the fix according to fix_strategy:
-
-               - add_initialization_check:
-                 Add check like: if self.var is None: self._initialize()
-
-               - fix_logic_error:
-                 Correct the algorithm based on test expectations
-
-               - add_error_handling:
-                 Wrap code in try-except with appropriate handling
-
-               - fix_type_conversion:
-                 Add type conversion: int(value), str(value), etc.
-
-               - fix_import:
-                 Correct import statement or add missing import
-
-            4. Write the fixed code back to the file
-            5. Log each fix applied
-
-            After all fixes:
-            1. Create a git commit listing all fixes
-            2. Push to current branch
-
-            Save fixes to .claude/state/fixes_applied.json:
+            Each file format:
             {
-              "fixes": [
+              "module": "perception",
+              "failures": [
                 {
-                  "problem_id": "problem_1",
-                  "file": "src/vision/person_detector.py",
-                  "lines_modified": [45, 46],
-                  "fix_type": "add_initialization_check",
-                  "description": "Added model initialization check"
+                  "id": "failure_1",
+                  "test_file": "...",
+                  "source_file": "...",
+                  "root_cause": "...",
+                  "fix_strategy": "...",
+                  "suggested_fix": "..."
                 }
               ]
             }
-          dependencies: ["debugger-agent"]
-          output: ".claude/state/fixes_applied.json"
-          auto_commit: true
-          commit_message: "Auto-fix: Apply automated bug fixes based on test failures"
 
-        - name: "verification-agent"
-          agent: "general-purpose"
-          prompt: |
-            Verify that fixes resolved the test failures.
-
-            Read .claude/state/test_failures.json to get list of failed tests.
-
-            Run only the previously failed tests:
-            pytest <test_file>::<test_name> --verbose --tb=short
-
-            For each previously failed test:
-            - Check if it now passes (fixed)
-            - Check if it still fails (not fixed)
-
-            Also run the full test suite to detect regressions:
-            pytest tests/ --verbose --tb=short
-
-            Compare with previous test results to identify:
-            - Tests that were failing and are now passing (fixed)
-            - Tests that are still failing (not fixed)
-            - Tests that were passing and are now failing (regression)
-
-            If regressions detected:
-            1. Log the regression details
-            2. Revert the last commit: git revert HEAD --no-edit
-            3. Report failure
-
-            Save verification results to .claude/state/verification_results.json:
+            6. Save summary to .claude/state/failure_summary.json:
             {
-              "fixed": ["failure_1", "failure_2"],
-              "still_failing": ["failure_3"],
-              "new_failures": [],
-              "success_rate": 0.67,
-              "regression_detected": false
+              "total_failures": N,
+              "by_module": {
+                "perception": N,
+                "navigation": N,
+                "localization": N,
+                "safety": N,
+                "integration": N
+              }
             }
+          dependencies: ["test-runner-agent"]
+          output: ".claude/state/failure_summary.json"
 
-            Update .claude/state/test_results.json with new test counts.
-          dependencies: ["fixer-agent"]
-          output: ".claude/state/verification_results.json"
+        # Parallel module-specific fixers (reuse original implementation agents)
+        - name: "perception-agent"
+          agent: "general-purpose"
+          condition: "perception_failures.json exists and not empty"
+          prompt: |
+            Fix perception module test failures.
+
+            You originally implemented the perception module (vision and tracking).
+            Now fix the test failures in your module.
+
+            Read .claude/state/perception_failures.json
+
+            For each failure:
+            1. Read the failing test to understand expectations
+            2. Read your implementation code
+            3. Apply the suggested fix or determine the correct fix
+            4. Update the code to pass the test
+            5. Ensure no regressions in other parts of the module
+
+            Focus only on perception module files:
+            - src/vision/*
+            - src/tracking/*
+
+            After fixing, create a commit: "Fix perception module test failures"
+          dependencies: ["debugger-agent"]
+          output: ".claude/state/perception_fixes.json"
+          auto_commit: true
+          commit_message: "Fix perception module test failures"
+
+        - name: "navigation-agent"
+          agent: "general-purpose"
+          condition: "navigation_failures.json exists and not empty"
+          prompt: |
+            Fix navigation module test failures.
+
+            You originally implemented the navigation module (control and planning).
+            Now fix the test failures in your module.
+
+            Read .claude/state/navigation_failures.json
+
+            For each failure:
+            1. Read the failing test to understand expectations
+            2. Read your implementation code
+            3. Apply the suggested fix or determine the correct fix
+            4. Update the code to pass the test
+            5. Ensure no regressions in other parts of the module
+
+            Focus only on navigation module files:
+            - src/control/*
+            - src/planning/*
+
+            After fixing, create a commit: "Fix navigation module test failures"
+          dependencies: ["debugger-agent"]
+          output: ".claude/state/navigation_fixes.json"
+          auto_commit: true
+          commit_message: "Fix navigation module test failures"
+
+        - name: "localization-agent"
+          agent: "general-purpose"
+          condition: "localization_failures.json exists and not empty"
+          prompt: |
+            Fix localization module test failures.
+
+            You originally implemented the localization module (odometry, IMU, mapping).
+            Now fix the test failures in your module.
+
+            Read .claude/state/localization_failures.json
+
+            For each failure:
+            1. Read the failing test to understand expectations
+            2. Read your implementation code
+            3. Apply the suggested fix or determine the correct fix
+            4. Update the code to pass the test
+            5. Ensure no regressions in other parts of the module
+
+            Focus only on localization module files:
+            - src/localization/*
+            - src/mapping/*
+
+            After fixing, create a commit: "Fix localization module test failures"
+          dependencies: ["debugger-agent"]
+          output: ".claude/state/localization_fixes.json"
+          auto_commit: true
+          commit_message: "Fix localization module test failures"
+
+        - name: "safety-agent"
+          agent: "general-purpose"
+          condition: "safety_failures.json exists and not empty"
+          prompt: |
+            Fix safety module test failures.
+
+            You originally implemented the safety module (monitoring, watchdog, health checks).
+            Now fix the test failures in your module.
+
+            Read .claude/state/safety_failures.json
+
+            For each failure:
+            1. Read the failing test to understand expectations
+            2. Read your implementation code
+            3. Apply the suggested fix or determine the correct fix
+            4. Update the code to pass the test
+            5. CRITICAL: Ensure all safety checks remain active and functional
+            6. Never disable or mock safety checks in production code
+
+            Focus only on safety module files:
+            - src/safety/*
+
+            After fixing, create a commit: "Fix safety module test failures"
+          dependencies: ["debugger-agent"]
+          output: ".claude/state/safety_fixes.json"
+          auto_commit: true
+          commit_message: "Fix safety module test failures"
+
+        - name: "integration-agent"
+          agent: "general-purpose"
+          condition: "integration_failures.json exists and not empty"
+          prompt: |
+            Fix integration layer test failures.
+
+            You originally integrated all modules with the dimos framework.
+            Now fix the test failures in the integration layer.
+
+            Read .claude/state/integration_failures.json
+
+            For each failure:
+            1. Read the failing test to understand expectations
+            2. Read the integration code
+            3. Apply the suggested fix or determine the correct fix
+            4. Update the code to pass the test
+            5. Ensure module interactions remain correct
+
+            Focus only on integration files:
+            - src/dimos_integration/*
+            - src/main.py
+
+            After fixing, create a commit: "Fix integration layer test failures"
+          dependencies: ["debugger-agent"]
+          output: ".claude/state/integration_fixes.json"
+          auto_commit: true
+          commit_message: "Fix integration layer test failures"
 
     - name: "review"
       agent: "general-purpose"
