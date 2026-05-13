@@ -1,0 +1,32 @@
+"""Test requirements for Go2 person following system.
+
+Install with: pip install -r tests/requirements-test.txt
+"""
+
+# Core testing framework
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-mock>=3.11.1
+pytest-asyncio>=0.21.1
+
+# Mocking and fixtures
+unittest-mock>=1.5.0
+
+# Code quality
+black>=23.7.0
+pylint>=2.17.5
+mypy>=1.5.0
+flake8>=6.1.0
+
+# Coverage reporting
+coverage>=7.3.0
+
+# Performance testing
+pytest-benchmark>=4.0.0
+
+# Parallel test execution
+pytest-xdist>=3.3.1
+
+# Test data generation
+faker>=19.3.1
+hypothesis>=6.82.0
