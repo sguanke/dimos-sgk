@@ -1,0 +1,9 @@
+{
+  "agent_name": "localization-agent",
+  "returncode": 0,
+  "stdout": "Localization module implementation complete. I've created:\n\n**Localization components:**\n- `src/localization/odometry.py` - Wheel odometry with differential drive kinematics\n- `src/localization/imu_fusion.py` - Complementary filter for IMU/odometry fusion\n- `src/localization/pose_estimator.py` - Combined pose estimation with covariance tracking\n\n**Mapping component:**\n- `src/mapping/local_map.py` - 2D occupancy grid (10m\u00d710m, 0.1m resolution) with obstacle detection\n\nAll modules follow the specifications: type hints, docstrings, dataclasses for structured data, numpy for efficiency, and comprehensive logging. The commit has been created and pushed to `feat_follow_test1`.\n",
+  "stderr": "",
+  "retry_count": 0,
+  "timestamp": 1778644549.4217813,
+  "elapsed_seconds": 389.85245990753174
+}
