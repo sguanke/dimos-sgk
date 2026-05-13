@@ -1,0 +1,36 @@
+# Vision Configuration Parameters
+
+# YOLO Detection Parameters
+yolo:
+  model: "yolov8n.pt"  # YOLOv8 nano model for speed
+  confidence_threshold: 0.5  # Minimum confidence for detections
+  nms_threshold: 0.4  # IoU threshold for non-maximum suppression
+
+# DeepSORT Tracking Parameters
+deepsort:
+  max_age: 30  # Maximum frames to keep track without detection
+  n_init: 3  # Number of consecutive detections before track is confirmed
+  max_iou_distance: 0.7  # Maximum IoU distance for matching
+  embedder: "mobilenet"  # Feature extractor for re-identification
+
+# Target Selection Parameters
+target_selection:
+  fov_angle: 60  # Field of view angle in degrees
+  max_distance: 10.0  # Maximum distance to consider targets (meters)
+  reacquisition_timeout: 3.0  # Time to attempt re-acquisition (seconds)
+  image_width: 1920  # Camera image width in pixels
+  image_height: 1080  # Camera image height in pixels
+
+# Camera Parameters
+camera:
+  width: 1920
+  height: 1080
+  fps: 30
+  device: 0  # Camera device ID (0 for default)
+
+# Logging
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  log_detections: true  # Log detection events
+  log_tracking: true  # Log tracking events
+  log_target_selection: true  # Log target selection events
