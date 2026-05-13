@@ -1,6 +1,6 @@
 project:
   name: "go2-person-following"
-  description: "Go2 robot dog person following system using dimos framework"
+  description: "Go2 robot dog person following system using dimos framework with auto-test-fix loop"
 
   phases:
     - name: "planning"
@@ -201,6 +201,215 @@ project:
           auto_commit: true
           commit_message: "Add simulation tests for end-to-end scenarios"
 
+    # ========================================
+    # AUTO TEST-FIX LOOP
+    # ========================================
+    - name: "auto-test-and-fix"
+      dependencies: ["testing"]
+      loop:
+        max_iterations: 6
+        break_on_success: true
+      agents:
+        - name: "test-runner-agent"
+          agent: "general-purpose"
+          prompt: |
+            Run all tests and collect detailed results.
+
+            Steps:
+            1. Install dependencies if needed:
+               pip install -r requirements.txt
+               pip install pytest pytest-cov pytest-json-report pytest-html
+
+            2. Run pytest with detailed output:
+               pytest tests/ \
+                 --verbose \
+                 --tb=long \
+                 --junit-xml=.claude/state/junit.xml \
+                 --cov=src \
+                 --cov-report=json:.claude/state/coverage.json \
+                 --json-report \
+                 --json-report-file=.claude/state/test_results.json \
+                 --html=.claude/state/test_report.html
+
+            3. Parse the JSON report and create a detailed failure report.
+               For each failed test, extract:
+               - Test file and test name
+               - Error type and message
+               - Full traceback
+               - Source file and line number where error occurred
+
+            4. Save structured results to .claude/state/test_failures.json:
+               {
+                 "total": N,
+                 "passed": N,
+                 "failed": N,
+                 "failures": [
+                   {
+                     "id": "failure_1",
+                     "test_file": "tests/unit/test_detector.py",
+                     "test_name": "test_detect_person",
+                     "error_type": "AssertionError",
+                     "error_message": "...",
+                     "traceback": "...",
+                     "source_file": "src/vision/person_detector.py",
+                     "source_line": 45
+                   }
+                 ]
+               }
+
+            5. Log summary to console:
+               - Total tests: N
+               - Passed: N
+               - Failed: N
+               - Coverage: X%
+          output: ".claude/state/test_results.json"
+
+        - name: "debugger-agent"
+          agent: "general-purpose"
+          condition: "test_results.failed > 0"
+          prompt: |
+            Analyze test failures and identify root causes.
+
+            Read .claude/state/test_failures.json
+
+            For each failure:
+            1. Read the test code to understand what is being tested
+            2. Read the source code file mentioned in the failure
+            3. Analyze the error type:
+               - AssertionError: Logic error, wrong output
+               - AttributeError: Missing attribute or method
+               - TypeError: Type mismatch
+               - ImportError: Missing dependency or wrong import
+               - IndexError: Array bounds issue
+               - KeyError: Missing dictionary key
+
+            4. Identify the root cause:
+               - Uninitialized variable
+               - Wrong algorithm logic
+               - Missing error handling
+               - Type conversion issue
+               - API mismatch
+
+            5. Generate fix strategy:
+               - add_initialization_check
+               - fix_logic_error
+               - add_error_handling
+               - fix_type_conversion
+               - fix_import
+
+            6. Save analysis to .claude/state/problem_analysis.json:
+               {
+                 "problems": [
+                   {
+                     "id": "problem_1",
+                     "failure_id": "failure_1",
+                     "test_file": "...",
+                     "source_file": "...",
+                     "source_function": "...",
+                     "root_cause": "...",
+                     "error_category": "...",
+                     "fix_strategy": "...",
+                     "affected_lines": [45, 46],
+                     "suggested_fix": "Add: if self.model is None: self._load_model()",
+                     "confidence": 0.95
+                   }
+                 ]
+               }
+          dependencies: ["test-runner-agent"]
+          output: ".claude/state/problem_analysis.json"
+
+        - name: "fixer-agent"
+          agent: "general-purpose"
+          condition: "problem_analysis.problems.length > 0"
+          prompt: |
+            Fix code based on problem analysis.
+
+            Read .claude/state/problem_analysis.json
+
+            For each problem (sorted by confidence, highest first):
+            1. Read the source file
+            2. Locate the affected lines
+            3. Apply the fix according to fix_strategy:
+
+               - add_initialization_check:
+                 Add check like: if self.var is None: self._initialize()
+
+               - fix_logic_error:
+                 Correct the algorithm based on test expectations
+
+               - add_error_handling:
+                 Wrap code in try-except with appropriate handling
+
+               - fix_type_conversion:
+                 Add type conversion: int(value), str(value), etc.
+
+               - fix_import:
+                 Correct import statement or add missing import
+
+            4. Write the fixed code back to the file
+            5. Log each fix applied
+
+            After all fixes:
+            1. Create a git commit listing all fixes
+            2. Push to current branch
+
+            Save fixes to .claude/state/fixes_applied.json:
+            {
+              "fixes": [
+                {
+                  "problem_id": "problem_1",
+                  "file": "src/vision/person_detector.py",
+                  "lines_modified": [45, 46],
+                  "fix_type": "add_initialization_check",
+                  "description": "Added model initialization check"
+                }
+              ]
+            }
+          dependencies: ["debugger-agent"]
+          output: ".claude/state/fixes_applied.json"
+          auto_commit: true
+          commit_message: "Auto-fix: Apply automated bug fixes based on test failures"
+
+        - name: "verification-agent"
+          agent: "general-purpose"
+          prompt: |
+            Verify that fixes resolved the test failures.
+
+            Read .claude/state/test_failures.json to get list of failed tests.
+
+            Run only the previously failed tests:
+            pytest <test_file>::<test_name> --verbose --tb=short
+
+            For each previously failed test:
+            - Check if it now passes (fixed)
+            - Check if it still fails (not fixed)
+
+            Also run the full test suite to detect regressions:
+            pytest tests/ --verbose --tb=short
+
+            Compare with previous test results to identify:
+            - Tests that were failing and are now passing (fixed)
+            - Tests that are still failing (not fixed)
+            - Tests that were passing and are now failing (regression)
+
+            If regressions detected:
+            1. Log the regression details
+            2. Revert the last commit: git revert HEAD --no-edit
+            3. Report failure
+
+            Save verification results to .claude/state/verification_results.json:
+            {
+              "fixed": ["failure_1", "failure_2"],
+              "still_failing": ["failure_3"],
+              "new_failures": [],
+              "success_rate": 0.67,
+              "regression_detected": false
+            }
+
+            Update .claude/state/test_results.json with new test counts.
+          dependencies: ["fixer-agent"]
+          output: ".claude/state/verification_results.json"
+
     - name: "review"
       agent: "general-purpose"
       prompt: |
@@ -211,17 +420,20 @@ project:
         - tests/unit/ (unit tests)
         - tests/integration/ (integration tests)
         - tests/simulation/ (simulation tests)
+        - .claude/state/test_results.json (final test results)
+        - .claude/state/verification_results.json (fix verification)
 
         Check against CLAUDE.md requirements:
         - Architecture compliance
         - Code quality and safety
-        - Test coverage
+        - Test coverage (should be >80%, 100% for safety)
         - Module integration correctness
+        - All tests passing
 
         Output comprehensive review report to .claude/state/review.md
 
         IMPORTANT: If review finds critical issues, set exit code to indicate failure.
-      dependencies: ["testing"]
+      dependencies: ["auto-test-and-fix"]
       output: ".claude/state/review.md"
 
     - name: "final-integration"
@@ -237,12 +449,13 @@ project:
            - tests/simulation/
            - tests/mocks/
            - pytest.ini
-        3. Run full test suite: pytest tests/
+        3. Run full test suite one final time: pytest tests/ --verbose
         4. Create summary report with:
            - All modules implemented
-           - Test results
+           - Final test results (should be 100% passing)
            - Coverage report
            - Integration status
+           - Auto-fix statistics (how many issues fixed automatically)
         5. Save report to .claude/state/final-integration.json
 
         If review FAILED:
