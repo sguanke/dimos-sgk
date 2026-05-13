@@ -389,3 +389,50 @@
 ?? .claude/state/unit-test-agent.json
 
 2026-05-13 12:25:37,848 - INFO -   ➕ Adding changes to git...
+2026-05-13 12:25:37,853 - INFO -   💾 Creating commit: Add comprehensive unit tests for all modules
+2026-05-13 12:25:37,860 - INFO -   🚀 Pushing to origin/feat_follow_test1
+2026-05-13 12:25:41,693 - INFO -   ✅ Successfully pushed to origin/feat_follow_test1
+2026-05-13 12:25:41,693 - INFO - 
+[2/3] Starting agent: integration-test-agent
+2026-05-13 12:25:41,693 - INFO - 
+============================================================
+2026-05-13 12:25:41,693 - INFO - 🤖 Running agent: integration-test-agent
+2026-05-13 12:25:41,693 - INFO - ============================================================
+2026-05-13 12:25:41,693 - INFO - Retry count: 0
+2026-05-13 12:25:41,693 - INFO - Start time: 2026-05-13 12:25:41
+2026-05-13 12:25:41,693 - INFO - 
+📋 Agent Configuration:
+2026-05-13 12:25:41,693 - INFO -   - Name: integration-test-agent
+2026-05-13 12:25:41,693 - INFO -   - Output: .claude/state/integration-test-agent.json
+2026-05-13 12:25:41,693 - INFO -   - Auto-commit: True
+2026-05-13 12:25:41,693 - INFO -   - Push branch: N/A
+2026-05-13 12:25:41,693 - INFO -   - Prompt length: 494 chars
+2026-05-13 12:25:41,693 - INFO - 
+▶️  Executing agent...
+2026-05-13 12:33:36,698 - INFO - 
+⏱️  Execution time: 475.00 seconds
+2026-05-13 12:33:36,698 - INFO - ✅ Agent integration-test-agent completed successfully
+2026-05-13 12:33:36,698 - INFO - 
+📄 Output summary (first 10 lines):
+2026-05-13 12:33:36,698 - INFO -   Done! I've successfully created comprehensive integration tests for the Go2 person following system and pushed them to the `feat_follow_test1` branch.
+2026-05-13 12:33:36,698 - INFO -   
+2026-05-13 12:33:36,698 - INFO -   ## What was created:
+2026-05-13 12:33:36,698 - INFO -   
+2026-05-13 12:33:36,698 - INFO -   **4 integration test files** in `tests/integration/`:
+2026-05-13 12:33:36,698 - INFO -   
+2026-05-13 12:33:36,698 - INFO -   1. **test_perception_to_navigation.py** - Tests vision → control data flow including detection, tracking, target selection, and motion command generation
+2026-05-13 12:33:36,698 - INFO -   
+2026-05-13 12:33:36,698 - INFO -   2. **test_safety_integration.py** - Tests safety monitor validation, emergency stops, watchdog timeouts, and health checker integration
+2026-05-13 12:33:36,698 - INFO -   
+2026-05-13 12:33:36,698 - INFO -   ... (5 more lines)
+2026-05-13 12:33:36,698 - INFO -   ✓ Output file created: .claude/state/integration-test-agent.json
+2026-05-13 12:33:36,698 - INFO - 
+────────────────────────────────────────────────────────────
+2026-05-13 12:33:36,698 - INFO - 📤 Committing and pushing code for integration-test-agent
+2026-05-13 12:33:36,698 - INFO - ────────────────────────────────────────────────────────────
+2026-05-13 12:33:36,700 - INFO -   📍 Current branch: feat_follow_test1
+2026-05-13 12:33:36,701 - INFO -   📝 Changes detected:
+ M .claude/logs/orchestrator_20260513_113310.log
+?? .claude/state/integration-test-agent.json
+
+2026-05-13 12:33:36,701 - INFO -   ➕ Adding changes to git...
