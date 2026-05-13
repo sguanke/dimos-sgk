@@ -238,7 +238,7 @@ project:
                - Full traceback
                - Source file and line number where error occurred
 
-            4. Save structured results to .claude/state/test_failures.json:
+            4. Save structured results to .claude/state/test_results.json:
                {
                  "total": N,
                  "passed": N,
@@ -270,7 +270,7 @@ project:
           prompt: |
             Analyze test failures and classify by module.
 
-            Read .claude/state/test_failures.json
+            Read .claude/state/test_results.json
 
             For each failure:
             1. Read the test code to understand what is being tested

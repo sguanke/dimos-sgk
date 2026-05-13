@@ -198,10 +198,8 @@ class AgentOrchestrator:
             return True
 
         # Parse condition expression
-        # Example: "test_results.failed > 0"
         try:
-            # Simple evaluation - can be enhanced with safer eval
-            # For now, check common patterns
+            # Pattern 1: test_results.failed > 0
             if "test_results.failed > 0" in condition:
                 test_results_file = self.state_dir / "test_results.json"
                 if test_results_file.exists():
@@ -210,6 +208,7 @@ class AgentOrchestrator:
                         return data.get("failed", 0) > 0
                 return False
 
+            # Pattern 2: problem_analysis.problems.length > 0
             if "problem_analysis.problems.length > 0" in condition:
                 analysis_file = self.state_dir / "problem_analysis.json"
                 if analysis_file.exists():
@@ -218,7 +217,25 @@ class AgentOrchestrator:
                         return len(data.get("problems", [])) > 0
                 return False
 
+            # Pattern 3: {filename} exists and not empty
+            # Example: "perception_failures.json exists and not empty"
+            if "exists and not empty" in condition:
+                filename = condition.split()[0].strip()
+                file_path = self.state_dir / filename
+                if file_path.exists():
+                    with open(file_path) as f:
+                        data = json.load(f)
+                        # Check if file has meaningful content
+                        if isinstance(data, dict):
+                            return bool(data.get("failures") or data.get("errors") or len(data) > 0)
+                        elif isinstance(data, list):
+                            return len(data) > 0
+                        else:
+                            return bool(data)
+                return False
+
             # Default: condition not recognized, run agent
+            self.log(f"  ⚠️  Unrecognized condition pattern: {condition}", "warning")
             return True
         except Exception as e:
             self.log(f"  ⚠️  Error evaluating condition: {e}", "warning")
