@@ -582,3 +582,248 @@ architecture.md
 - 使用Claude Code多智能体工作流构建
 - 基于dimos框架
 - 为宇树Go2机器人平台设计
+
+---
+
+# Go2 Person Following System - English Documentation
+
+## System Overview
+
+A person following system for the Unitree Go2 robot dog, built on the dimos (distributed intelligent multi-agent operating system) framework. The system uses computer vision to detect and track a specified person, then controls the Go2 robot to follow them while maintaining safe distance and avoiding obstacles.
+
+## Features
+
+- **Real-time Person Detection**: YOLOv8-based person detection at 30+ FPS
+- **Robust Tracking**: DeepSORT multi-object tracking with re-identification
+- **Safe Following**: PID-based motion control with safety monitoring
+- **Obstacle Avoidance**: Dynamic path planning around obstacles
+- **Multi-Agent Architecture**: Modular design with independent agents for perception, navigation, localization, and safety
+
+## Architecture
+
+The system consists of four main agents that communicate via a message bus:
+
+- **Perception Agent**: Person detection and tracking using YOLO and DeepSORT
+- **Localization Agent**: Robot pose estimation using odometry and IMU fusion
+- **Navigation Agent**: Motion control and path planning with PID controllers
+- **Safety Agent**: Safety monitoring, emergency stop, and health checking
+
+## Hardware Requirements
+
+- **Unitree Go2 Robot Dog**
+  - Camera: 1920x1080 @ 30fps
+  - Network: WiFi 192.168.123.0/24
+  - Control frequency: 50Hz
+  - Battery: ~2 hours runtime
+
+## Software Requirements
+
+- Python 3.10+
+- CUDA-capable GPU (recommended for real-time detection)
+- Ubuntu 20.04+ or compatible Linux distribution
+
+## Installation
+
+### 1. Create Virtual Environment
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+### 2. Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 3. Download YOLO Model
+
+```bash
+# Download YOLOv8 nano model (lightweight, fast)
+python -c "from ultralytics import YOLO; YOLO('yolov8n.pt')"
+```
+
+## Configuration
+
+Configuration files are located in the `config/` directory:
+
+- `robot_params.yaml`: Robot hardware parameters and PID gains
+- `vision_params.yaml`: Detection and tracking parameters
+- `safety_params.yaml`: Safety thresholds and limits
+
+### Key Parameters
+
+**Following Distance** (config/robot_params.yaml):
+```yaml
+following:
+  target_distance: 2.0  # meters
+  distance_tolerance: 0.3  # meters
+```
+
+**Detection Confidence** (config/vision_params.yaml):
+```yaml
+yolo:
+  confidence_threshold: 0.5  # 0.0 to 1.0
+```
+
+**Safety Limits** (config/safety_params.yaml):
+```yaml
+safety_monitor:
+  max_linear_velocity: 0.8  # m/s
+  emergency_stop_distance: 0.5  # meters
+```
+
+## Usage
+
+### Simulation Mode (No Hardware Required)
+
+```bash
+python src/main.py --mode simulation --debug --visualize
+```
+
+### Hardware Mode (Requires Go2 Robot)
+
+1. **Connect to Go2 WiFi Network**
+   - Network: `Unitree_Go2_XXXXXX`
+   - Default robot IP: `192.168.123.161`
+
+2. **Run the System**
+
+```bash
+python src/main.py --mode hardware --robot-ip 192.168.123.161
+```
+
+3. **Stop the System**
+   - Press `Ctrl+C` for graceful shutdown
+   - Emergency stop: Use Go2 RC controller
+
+### Command-Line Options
+
+```bash
+python src/main.py [OPTIONS]
+
+Options:
+  --mode {simulation,hardware}  Operating mode (default: simulation)
+  --robot-ip IP                 Go2 robot IP address (default: 192.168.123.161)
+  --debug                       Enable debug logging
+  --visualize                   Show camera feed with detections
+```
+
+## Testing
+
+### Run All Tests
+
+```bash
+pytest tests/
+```
+
+### Run Specific Test Suite
+
+```bash
+pytest tests/unit/          # Unit tests
+pytest tests/integration/   # Integration tests
+pytest tests/simulation/    # Simulation tests
+```
+
+### Run with Coverage
+
+```bash
+pytest --cov=src --cov-report=html tests/
+```
+
+## Project Structure
+
+```
+go2_person_following/
+├── src/
+│   ├── vision/                      # Perception module
+│   │   ├── person_detector.py      # YOLO-based detection
+│   │   ├── person_tracker.py       # DeepSORT tracking
+│   │   └── target_selector.py      # Target selection
+│   ├── control/                     # Navigation module
+│   │   ├── motion_controller.py    # PID motion control
+│   │   ├── distance_keeper.py      # Distance maintenance
+│   │   └── path_planner.py         # Path planning
+│   ├── localization/                # Localization module
+│   │   ├── odometry.py             # Wheel odometry
+│   │   ├── imu_fusion.py           # IMU data fusion
+│   │   └── pose_estimator.py       # Pose estimation
+│   ├── mapping/                     # Mapping module
+│   │   └── local_map.py            # Local obstacle map
+│   ├── safety/                      # Safety module
+│   │   ├── safety_monitor.py       # Safety monitoring
+│   │   ├── watchdog.py             # Timeout monitoring
+│   │   └── health_checker.py       # Health checking
+│   ├── dimos_integration/           # Integration module
+│   │   ├── agent_node.py           # Agent wrappers
+│   │   └── message_handler.py      # Message bus
+│   └── main.py                      # Entry point
+├── config/                          # Configuration files
+├── tests/                           # Test suites
+└── requirements.txt                 # Dependencies
+```
+
+## Safety Features
+
+- **Velocity Limits**: Maximum speed capped at 0.8 m/s
+- **Emergency Stop**: Automatic stop if target distance < 0.5m
+- **Obstacle Detection**: Maintains minimum 0.3m clearance
+- **Watchdog Timer**: Stops robot if no valid target for >2 seconds
+- **Health Monitoring**: Monitors CPU, memory, battery, and network
+- **Command Validation**: All motion commands validated before execution
+
+## Troubleshooting
+
+### Camera Not Detected
+- Check Go2 camera connection
+- Verify camera permissions
+- Try restarting the Go2 robot
+
+### Person Detection Not Working
+- Ensure adequate lighting (>50 lux)
+- Check YOLO model is downloaded
+- Lower confidence threshold in config
+
+### Robot Not Moving
+- Check emergency stop is not active
+- Verify Go2 SDK connection
+- Check safety logs: `logs/safety_events.log`
+
+### High CPU Usage
+- Reduce camera resolution
+- Use lighter YOLO model (yolov8n.pt)
+- Disable visualization in production
+
+## Known Limitations
+
+- Person detection accuracy drops in low light (<50 lux)
+- Tracking may fail if target moves behind obstacles for >3 seconds
+- Maximum following speed limited to 0.8 m/s for safety
+- Requires flat terrain (stairs/rough terrain not supported)
+
+## Technology Stack
+
+- **Framework**: dimos (distributed intelligent multi-agent operating system)
+- **Hardware**: Unitree Go2 robot dog
+- **Language**: Python 3.10+
+- **Vision**: OpenCV + YOLOv8 for person detection
+- **Tracking**: DeepSORT for multi-object tracking
+- **Control**: PID controller + Dynamic Window Approach (DWA)
+- **Communication**: Message bus for inter-agent communication
+
+## License
+
+[Specify your license here]
+
+## Contact
+
+[Specify contact information here]
+
+## Acknowledgments
+
+- Built with Claude Code multi-agent workflow
+- Based on the dimos framework
+- Designed for Unitree Go2 robot platform
+- YOLOv8 by Ultralytics
+- DeepSORT tracking algorithm
